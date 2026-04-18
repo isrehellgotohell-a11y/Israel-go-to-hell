@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Shoyou gabut</title>
+
+<style>
+body {
+    margin: 0;
+    background: black;
+    overflow: hidden;
+}
+
+/* FOTO NORMAL */
+#bg {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: black;
+    transition: transform 0.08s ease-out, filter 0.1s ease;
+}
+
+/* BUTTON */
+.btn {
+    position: absolute;
+    bottom: 10%;
+    width: 100%;
+    text-align: center;
+}
+
+button {
+    padding: 12px 25px;
+    font-size: 16px;
+    background: red;
+    border: none;
+    color: white;
+    border-radius: 8px;
+}
+</style>
+</head>
+
+<body onclick="startDJ()">
+
+<img id="bg">
+
+<div class="btn">
+    <button>NYAWIT</button>
+</div>
+
+<audio id="music" src="free.mp3" loop></audio>
+
+<script>
+
+// FOTO RANDOM SAAT BUKA
+const images = ["1.png","2.png","3.png","4.png","5.jpg","6.jpeg","7.jpeg"];
+
+function setRandomImage() {
+    const r = Math.floor(Math.random() * images.length);
+    document.getElementById("bg").src = images[r];
+}
+setRandomImage();
+
+// AUDIO ANALYZER
+let audioCtx, analyser, source, dataArray;
+
+function startDJ() {
+    const audio = document.getElementById("music");
+
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        source = audioCtx.createMediaElementSource(audio);
+
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+
+        source.connect(analyser);
+        analyser.connect(audioCtx.destination);
+
+        dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+        loop();
+    }
+
+    audio.play();
+}
+
+// LOOP SMOOTH
+function loop() {
+    requestAnimationFrame(loop);
+
+    analyser.getByteFrequencyData(dataArray);
+
+    let bass = 0;
+    for (let i = 0; i < 8; i++) bass += dataArray[i];
+    bass /= 8;
+
+    const bg = document.getElementById("bg");
+
+    // 🔥 SHAKE HALUS
+    const power = bass / 60; // kecil = smooth
+    const x = (Math.random() - 0.5) * power;
+    const y = (Math.random() - 0.5) * power;
+
+    bg.style.transform = `translate(${x}px, ${y}px)`;
+
+    // ✨ BRIGHTNESS HALUS
+    const bright = 1 + bass / 300;
+    bg.style.filter = `brightness(${bright})`;
+}
+</script>
+
+</body>
+</html>
