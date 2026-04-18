@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<title>Shoyou gabut</title>
+<title>Shoyou gabut 🤤</title>
 
 <style>
 body {
@@ -11,30 +11,239 @@ body {
     overflow: hidden;
 }
 
-/* FOTO NORMAL */
-#bg {
+/* FRAME SHAKE */
+#frame {
     position: fixed;
     width: 100%;
     height: 100%;
-    object-fit: contain;
-    background: black;
-    transition: transform 0.08s ease-out, filter 0.1s ease;
 }
 
-/* BUTTON */
+/* FOTO ORIGINAL */
+.slide {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: opacity 0.8s;
+}
+
+.active { opacity: 1; }
+
+/* DISCO */
+#disco {
+    position: fixed;
+    top: -150px;
+    left: 50%;
+    width: 300px;
+    height: 300px;
+    transform: translateX(-50%);
+    mix-blend-mode: screen;
+    animation: spin 6s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: translateX(-50%) rotate(0deg); }
+    to { transform: translateX(-50%) rotate(360deg); }
+}
+
+/* CONTROL */
 .btn {
     position: absolute;
-    bottom: 10%;
+    bottom: 5%;
     width: 100%;
     text-align: center;
 }
 
 button {
-    padding: 12px 25px;
-    font-size: 16px;
+    padding: 10px 20px;
     background: red;
-    border: none;
     color: white;
+    border: none;
+    border-radius: 8px;
+    margin: 5px;
+}
+
+/* PLAYLIST */
+#playlistUI {
+    position: absolute;
+    bottom: 15%;
+    width: 100%;
+    text-align: center;
+    color: white;
+}
+
+/* SONG NAME */
+#songName {
+    color: white;
+    margin-top: 5px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="frame"></div>
+<div id="disco"></div>
+
+<div id="playlistUI"></div>
+
+<div class="btn">
+    <button onclick="togglePlay()">▶ / ⏸</button>
+    <div id="songName">free</div>
+</div>
+
+<audio id="music" src="free.mp3"></audio>
+
+<script>
+
+// ================= IMAGES =================
+const images = [
+"1.png","2.png","3.png","4.png",
+"5.jpg","6.jpeg","7.jpeg","8.png"
+];
+
+let current = 0;
+let slides = [];
+const frame = document.getElementById("frame");
+
+images.forEach((src,i)=>{
+    const img = document.createElement("img");
+    img.src = src;
+    img.className = "slide";
+    if(i===0) img.classList.add("active");
+    frame.appendChild(img);
+    slides.push(img);
+});
+
+function nextSlide(){
+    slides[current].classList.remove("active");
+    current = (current+1)%slides.length;
+    slides[current].classList.add("active");
+}
+
+// ================= PLAYLIST =================
+const playlist = [
+    "free.mp3",
+    "doel.mp3"
+];
+
+let currentSong = 0;
+const audio = document.getElementById("music");
+const songName = document.getElementById("songName");
+const playlistUI = document.getElementById("playlistUI");
+
+function loadSong(i){
+    currentSong = i;
+    audio.src = playlist[i];
+    songName.innerText = playlist[i].replace(/\.[^/.]+$/,"");
+    audio.play();
+    highlight();
+}
+
+function renderPlaylist(){
+    playlistUI.innerHTML = "";
+    playlist.forEach((song,i)=>{
+        const el = document.createElement("div");
+        el.innerText = song.replace(/\.[^/.]+$/,"");
+        el.style.cursor = "pointer";
+        el.style.padding = "5px";
+        el.onclick = ()=>loadSong(i);
+        el.id = "song-"+i;
+        playlistUI.appendChild(el);
+    });
+}
+
+function highlight(){
+    playlist.forEach((_,i)=>{
+        const el = document.getElementById("song-"+i);
+        if(i===currentSong){
+            el.style.color="red";
+        } else {
+            el.style.color="white";
+        }
+    });
+}
+
+// ================= AUDIO =================
+let isPlaying = false;
+
+function togglePlay(){
+    if(!audioCtx) startDJ();
+
+    if(isPlaying){
+        audio.pause();
+    } else {
+        audio.play();
+    }
+    isPlaying = !isPlaying;
+}
+
+audio.addEventListener("ended", ()=>{
+    currentSong = (currentSong+1)%playlist.length;
+    loadSong(currentSong);
+});
+
+// ================= DJ ANALYZER =================
+let audioCtx, analyser, dataArray;
+let lastBass = 0;
+let shake = 0;
+
+function startDJ(){
+    audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+
+    const source = audioCtx.createMediaElementSource(audio);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+
+    source.connect(analyser);
+    analyser.connect(audioCtx.destination);
+
+    dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+    loop();
+}
+
+function loop(){
+    requestAnimationFrame(loop);
+
+    analyser.getByteFrequencyData(dataArray);
+
+    let bass=0;
+    for(let i=0;i<8;i++) bass+=dataArray[i];
+    bass/=8;
+
+    // GANTI SLIDE
+    if(bass>180 && lastBass<=180){
+        nextSlide();
+    }
+    lastBass = bass;
+
+    // SHAKE
+    if(bass>160){
+        shake = bass/25;
+    }
+    shake*=0.9;
+
+    const x=(Math.random()-0.5)*shake;
+    const y=(Math.random()-0.5)*shake;
+
+    frame.style.transform=`translate(${x}px,${y}px)`;
+
+    // DISCO
+    const hue=Math.random()*360;
+    document.getElementById("disco").style.background=
+        `radial-gradient(circle,hsla(${hue},100%,50%,0.4),transparent 70%)`;
+}
+
+// INIT
+renderPlaylist();
+highlight();
+
+</script>
+
+</body>
+</html>    color: white;
     border-radius: 8px;
 }
 </style>
