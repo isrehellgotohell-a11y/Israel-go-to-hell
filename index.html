@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>GHUROB</title>
+
+<style>
+* {margin:0;padding:0;box-sizing:border-box;}
+
+body {
+    height:100vh;
+    background:black;
+    font-family:monospace;
+    overflow:hidden;
+}
+
+/* BACKGROUND */
+img {
+    position:absolute;
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    background:black;
+    z-index:0;
+}
+
+/* OVERLAY */
+.overlay {
+    position:absolute;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.6);
+    z-index:1;
+}
+
+/* TEXT (SUDAH DIGANTI BIRU TUA) */
+#typing {
+    position:absolute;
+    top:20px;
+    width:100%;
+    text-align:center;
+    font-size:18px;
+    color:#00008B;
+    text-shadow:0 0 5px #00008B, 0 0 20px #00008B;
+    z-index:2;
+}
+
+/* CURSOR */
+#typing::after {
+    content:"|";
+    animation:blinkCursor 0.8s infinite;
+}
+
+@keyframes blinkCursor {
+    0% {opacity:1;}
+    50% {opacity:0;}
+    100% {opacity:1;}
+}
+
+/* BUTTON */
+.btn {
+    position:absolute;
+    bottom:40px;
+    left:50%;
+    transform:translateX(-50%);
+    padding:12px;
+    background:#00ffcc;
+    color:black;
+    border:none;
+    width:80%;
+    font-weight:bold;
+    z-index:2;
+    opacity:0;
+    transition:opacity 1s ease;
+}
+
+.show {
+    opacity:1;
+}
+
+/* FLASH */
+.flash {
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:white;
+    opacity:0;
+    pointer-events:none;
+    z-index:999;
+}
+
+.flash.on {
+    opacity:0.25;
+    transition:opacity 0.05s;
+}
+</style>
+</head>
+
+<body>
+
+<!-- FLASH -->
+<div id="flash" class="flash"></div>
+
+<!-- SCREEN WRAPPER -->
+<div id="screen">
+
+    <img src="https://i.imgur.com/kznkLL2.png">
+    <div class="overlay"></div>
+
+    <div id="typing"></div>
+
+    <button class="btn" id="btn">🎉 START SOUND 🎉</button>
+
+</div>
+
+<!-- AUDIO -->
+<audio id="music" loop></audio>
+
+<audio id="typeSound" preload="auto">
+    <source src="type.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+// ================= TYPING =================
+let text = "thank sudah melempar mbg";
+let el = document.getElementById("typing");
+let sound = document.getElementById("typeSound");
+let btn = document.getElementById("btn");
+
+let index = 0;
+
+function typeLetter() {
+    if (index < text.length) {
+        let char = text.charAt(index);
+        el.innerHTML += char;
+
+        if (char !== " ") {
+            if (!sound.paused) {
+                sound.pause();
+                sound.currentTime = 0;
+            }
+            sound.play().catch(()=>{});
+        }
+
+        index++;
+        setTimeout(typeLetter, 80);
+    } else {
+        btn.classList.add("show");
+    }
+}
+
+document.body.addEventListener("touchstart", () => {
+    sound.play().then(()=> sound.pause());
+}, { once: true });
+
+setTimeout(typeLetter, 800);
+
+// ================= MUSIC =================
+let audio = document.getElementById("music");
+let screen = document.getElementById("screen");
+let flash = document.getElementById("flash");
+
+// RANDOM MUSIC
+const playlist = ["free.mp3", "doel.mp3"];
+
+function setRandomMusic() {
+    const randomIndex = Math.floor(Math.random() * playlist.length);
+    audio.src = playlist[randomIndex];
+}
+setRandomMusic();
+
+function startMusic() {
+    audio.play().then(()=>{
+        btn.innerText = "🔊 SOUND ON";
+        setupAudio();
+    }).catch(()=>{
+        btn.innerText = "❌ TAP AGAIN";
+    });
+}
+
+btn.addEventListener("touchstart", startMusic);
+btn.addEventListener("click", startMusic);
+
+// ================= BASS SYNC =================
+let audioCtx;
+let analyser;
+let source;
+let dataArray;
+
+function setupAudio() {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+
+    source = audioCtx.createMediaElementSource(audio);
+    source.connect(analyser);
+    analyser.connect(audioCtx.destination);
+
+    analyser.fftSize = 256;
+    let bufferLength = analyser.frequencyBinCount;
+    dataArray = new Uint8Array(bufferLength);
+
+    detectBeat();
+}
+
+function detectBeat() {
+    analyser.getByteFrequencyData(dataArray);
+
+    let bass = dataArray.slice(0, 10).reduce((a, b) => a + b, 0);
+
+    if (bass > 2000) {
+
+        screen.style.transform = "scale(1.08)";
+        setTimeout(() => {
+            screen.style.transform = "scale(1)";
+        }, 80);
+
+        flash.classList.add("on");
+        setTimeout(() => flash.classList.remove("on"), 60);
+    }
+
+    requestAnimationFrame(detectBeat);
+}
+</script>
+
+</body>
+</html>
