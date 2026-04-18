@@ -2,23 +2,24 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<title>Shoyou gabut 🤤</title>
+<title>Shoyou DJ Mode</title>
 
 <style>
 body {
     margin: 0;
     background: black;
     overflow: hidden;
+    font-family: Arial, sans-serif;
 }
 
-/* FRAME SHAKE */
+/* FRAME */
 #frame {
     position: fixed;
     width: 100%;
     height: 100%;
 }
 
-/* FOTO ORIGINAL */
+/* FOTO */
 .slide {
     position: absolute;
     left: 50%;
@@ -27,14 +28,234 @@ body {
     opacity: 0;
     transition: opacity 0.8s;
 }
-
 .active { opacity: 1; }
 
 /* DISCO */
 #disco {
     position: fixed;
-    top: -150px;
+    top: -120px;
     left: 50%;
+    width: 250px;
+    height: 250px;
+    transform: translateX(-50%);
+    mix-blend-mode: screen;
+    animation: spin 8s linear infinite;
+    opacity: 0.4;
+}
+@keyframes spin {
+    from { transform: translateX(-50%) rotate(0deg); }
+    to { transform: translateX(-50%) rotate(360deg); }
+}
+
+/* CONTROL PANEL */
+.panel {
+    position: absolute;
+    bottom: 5%;
+    width: 100%;
+    text-align: center;
+}
+
+/* BUTTON */
+button {
+    padding: 10px 18px;
+    background: linear-gradient(45deg, red, orange);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    margin: 5px;
+    font-size: 14px;
+}
+
+/* SONG NAME */
+#songName {
+    color: white;
+    margin-top: 8px;
+    font-size: 16px;
+}
+
+/* PLAYLIST BOX */
+#playlistUI {
+    position: absolute;
+    right: 15px;
+    top: 15px;
+    width: 160px;
+    background: rgba(0,0,0,0.5);
+    border-radius: 12px;
+    padding: 10px;
+    backdrop-filter: blur(10px);
+}
+
+/* ITEM */
+.song {
+    padding: 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-bottom: 4px;
+    transition: 0.2s;
+}
+
+.song:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+.activeSong {
+    background: red;
+    font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+
+<div id="frame"></div>
+<div id="disco"></div>
+
+<div id="playlistUI"></div>
+
+<div class="panel">
+    <button onclick="togglePlay()">▶ / ⏸</button>
+    <div id="songName">free</div>
+</div>
+
+<audio id="music" src="free.mp3"></audio>
+
+<script>
+
+// IMAGES
+const images = ["1.png","2.png","3.png","4.png","5.jpg","6.jpeg","7.jpeg","8.png"];
+let current = 0;
+let slides = [];
+const frame = document.getElementById("frame");
+
+images.forEach((src,i)=>{
+    const img = document.createElement("img");
+    img.src = src;
+    img.className = "slide";
+    if(i===0) img.classList.add("active");
+    frame.appendChild(img);
+    slides.push(img);
+});
+
+function nextSlide(){
+    slides[current].classList.remove("active");
+    current = (current+1)%slides.length;
+    slides[current].classList.add("active");
+}
+
+// PLAYLIST
+const playlist = ["free.mp3","doel.mp3"];
+let currentSong = 0;
+
+const audio = document.getElementById("music");
+const songName = document.getElementById("songName");
+const playlistUI = document.getElementById("playlistUI");
+
+function loadSong(i){
+    currentSong = i;
+    audio.src = playlist[i];
+    songName.innerText = playlist[i].replace(/\.[^/.]+$/,"");
+    audio.play();
+    highlight();
+}
+
+function renderPlaylist(){
+    playlistUI.innerHTML = "";
+    playlist.forEach((song,i)=>{
+        const el = document.createElement("div");
+        el.className = "song";
+        el.innerText = song.replace(/\.[^/.]+$/,"");
+        el.onclick = ()=>loadSong(i);
+        el.id = "song-"+i;
+        playlistUI.appendChild(el);
+    });
+}
+
+function highlight(){
+    playlist.forEach((_,i)=>{
+        const el = document.getElementById("song-"+i);
+        el.classList.remove("activeSong");
+        if(i===currentSong){
+            el.classList.add("activeSong");
+        }
+    });
+}
+
+// AUDIO
+let isPlaying = false;
+
+function togglePlay(){
+    if(!audioCtx) startDJ();
+
+    if(isPlaying){
+        audio.pause();
+    } else {
+        audio.play();
+    }
+    isPlaying = !isPlaying;
+}
+
+audio.addEventListener("ended", ()=>{
+    currentSong = (currentSong+1)%playlist.length;
+    loadSong(currentSong);
+});
+
+// ANALYZER
+let audioCtx, analyser, dataArray;
+let lastBass = 0;
+let shake = 0;
+
+function startDJ(){
+    audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    const source = audioCtx.createMediaElementSource(audio);
+
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+
+    source.connect(analyser);
+    analyser.connect(audioCtx.destination);
+
+    dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+    loop();
+}
+
+function loop(){
+    requestAnimationFrame(loop);
+
+    analyser.getByteFrequencyData(dataArray);
+
+    let bass=0;
+    for(let i=0;i<8;i++) bass+=dataArray[i];
+    bass/=8;
+
+    if(bass>180 && lastBass<=180){
+        nextSlide();
+    }
+    lastBass = bass;
+
+    if(bass>160){
+        shake = bass/25;
+    }
+    shake*=0.9;
+
+    const x=(Math.random()-0.5)*shake;
+    const y=(Math.random()-0.5)*shake;
+
+    frame.style.transform=`translate(${x}px,${y}px)`;
+
+    const hue=Math.random()*360;
+    document.getElementById("disco").style.background=
+        `radial-gradient(circle,hsla(${hue},100%,50%,0.4),transparent 70%)`;
+}
+
+// INIT
+renderPlaylist();
+highlight();
+
+</script>
+
+</body>
+</html>    left: 50%;
     width: 300px;
     height: 300px;
     transform: translateX(-50%);
