@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<title>Shoyou DJ Mode</title>
+<title>Shoyou gabut🤤</title>
 
 <style>
 body {
@@ -19,22 +19,117 @@ body {
     height: 100%;
 }
 
-/* FOTO */
+/* FOTO (ASLI, TIDAK DIPAKSA) */
 .slide {
     position: absolute;
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
     opacity: 0;
-    transition: opacity 0.8s;
+    transition: opacity 1s ease;
 }
 .active { opacity: 1; }
 
-/* DISCO */
-#disco {
-    position: fixed;
-    top: -120px;
-    left: 50%;
+/* PANEL */
+.panel {
+    position: absolute;
+    bottom: 8%;
+    width: 100%;
+    text-align: center;
+}
+
+/* BUTTON BESAR */
+button {
+    padding: 14px 30px;
+    font-size: 18px;
+    background: red;
+    color: white;
+    border: none;
+    border-radius: 10px;
+}
+
+/* NAMA LAGU */
+#songName {
+    color: white;
+    margin-top: 10px;
+    font-size: 18px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="frame"></div>
+
+<div class="panel">
+    <button onclick="togglePlay()">PLAY / PAUSE</button>
+    <div id="songName">free</div>
+</div>
+
+<audio id="music" src="free.mp3"></audio>
+
+<script>
+
+// ================= IMAGES =================
+const images = [
+"1.png","2.png","3.png","4.png",
+"5.jpg","6.jpeg","7.jpeg","8.png"
+];
+
+let current = 0;
+let slides = [];
+const frame = document.getElementById("frame");
+
+images.forEach((src,i)=>{
+    const img = document.createElement("img");
+    img.src = src;
+    img.className = "slide";
+    if(i===0) img.classList.add("active");
+    frame.appendChild(img);
+    slides.push(img);
+});
+
+// SLIDE OTOMATIS (HALUS)
+function nextSlide(){
+    slides[current].classList.remove("active");
+    current = (current+1)%slides.length;
+    slides[current].classList.add("active");
+}
+
+// GANTI FOTO TIAP 5 DETIK
+setInterval(nextSlide, 5000);
+
+// ================= AUDIO =================
+const audio = document.getElementById("music");
+const songName = document.getElementById("songName");
+
+let isPlaying = false;
+
+function togglePlay(){
+    if(isPlaying){
+        audio.pause();
+    } else {
+        audio.play();
+    }
+    isPlaying = !isPlaying;
+}
+
+// ================= PLAYLIST =================
+const playlist = ["free.mp3","doel.mp3"];
+let currentSong = 0;
+
+// AUTO NEXT LAGU
+audio.addEventListener("ended", ()=>{
+    currentSong = (currentSong+1)%playlist.length;
+    audio.src = playlist[currentSong];
+    songName.innerText = playlist[currentSong].replace(/\.[^/.]+$/,"");
+    audio.play();
+});
+
+</script>
+
+</body>
+</html>    left: 50%;
     width: 250px;
     height: 250px;
     transform: translateX(-50%);
